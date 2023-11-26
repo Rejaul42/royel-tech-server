@@ -49,11 +49,24 @@ async function run() {
     })
 
     // add product
-    app.get('/product/:email', async (req, res) =>{
-      const email = req.params.email;
-      const query = { userEmail: email};
-      const result = await productCollection.find(query).toArray();
+    app.get('/product', async (req, res) =>{
+      const result = await productCollection.find().toArray();
       res.send(result)
+    })
+
+    
+    app.get('/allProducts/:email', async (req, res) =>{
+      const email = req.params.email;
+      const queryEmail = { userEmail: email};
+      const result = await productCollection.find(queryEmail).toArray();
+      res.send(result)
+    })
+    
+    app.get('/random/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await productCollection.findOne(query);
+      res.send(result);
     })
 
     app.post('/product', async (req, res) => {
@@ -61,6 +74,25 @@ async function run() {
       const result = await productCollection.insertOne(item);
       res.send(result);
     });
+
+    app.patch("/random/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const options = { upsert: true };
+      const updatedProduct = req.body;
+      const product = {
+          $set: {
+              name: updatedProduct.name,
+              category: updatedProduct.category,
+              externalLink: updatedProduct.externalLink,
+              productDescription: updatedProduct.productDescription,
+              image: updatedProduct.image
+          }
+      }
+      const result = await productCollection.updateOne(filter, product, options);
+      res.send(result)
+  })
+    
 
     app.delete('/product/:id', async (req, res) => {
       const id = req.params.id;
