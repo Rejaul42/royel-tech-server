@@ -27,6 +27,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const usersCollection = client.db("royelDB").collection('users');
+    const productCollection = client.db("royelDB").collection('product');
 
     // Users added to the database
     app.get('/users/:email', async (req, res) =>{
@@ -47,6 +48,15 @@ async function run() {
       res.send(result)
     })
 
+    // add product
+
+    app.post('/product', async (req, res) => {
+      const item = req.body;
+      const result = await productCollection.insertOne(item);
+      res.send(result);
+    });
+
+    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
