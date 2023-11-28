@@ -68,10 +68,21 @@ async function run() {
     }
 
     // Users added to the database
-    app.get('/users/:email', async (req, res) =>{
+    app.get('/individualUser/:email', async (req, res) =>{
       const email = req.params.email;
       const query = { email: email};
       const result = await usersCollection.findOne(query);
+      res.send(result)
+    })
+
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email }
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: 'user already exists', insertedId: null })
+      }
+      const result = await usersCollection.insertOne(user)
       res.send(result)
     })
 
@@ -91,15 +102,29 @@ async function run() {
       res.send({ admin });
     })
 
-    app.post('/users', async (req, res) => {
-      const user = req.body;
-      const query = { email: user.email }
-      const existingUser = await usersCollection.findOne(query);
-      if (existingUser) {
-        return res.send({ message: 'user already exists', insertedId: null })
+    app.patch('/users/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: 'admin'
+        }
       }
-      const result = await usersCollection.insertOne(user)
-      res.send(result)
+      const result = await usersCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
+    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+    
+
+    app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
     })
 
     // add product
@@ -109,7 +134,7 @@ async function run() {
     })
 
     
-    app.get('/allProducts/:email', async (req, res) =>{
+    app.get('/allProducts/:email', verifyToken, async (req, res) =>{
       const email = req.params.email;
       const queryEmail = { userEmail: email};
       const result = await productCollection.find(queryEmail).toArray();
@@ -123,13 +148,13 @@ async function run() {
       res.send(result);
     })
 
-    app.post('/product', async (req, res) => {
+    app.post('/product', verifyToken, async (req, res) => {
       const item = req.body;
       const result = await productCollection.insertOne(item);
       res.send(result);
     });
 
-    app.patch("/random/:id", async (req, res) => {
+    app.patch("/random/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const options = { upsert: true };
@@ -148,7 +173,7 @@ async function run() {
   })
     
 
-    app.delete('/product/:id', async (req, res) => {
+    app.delete('/product/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await productCollection.deleteOne(query);
