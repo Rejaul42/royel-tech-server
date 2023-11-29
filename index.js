@@ -29,6 +29,7 @@ async function run() {
     await client.connect();
     const usersCollection = client.db("royelDB").collection('users');
     const productCollection = client.db("royelDB").collection('product');
+    const reviewCollection = client.db("royelDB").collection('reviews');
 
 
     // JWT
@@ -168,6 +169,15 @@ async function run() {
               image: updatedProduct.image
           }
       }
+
+      // Review section
+
+      app.post('/reviews', verifyToken, async (req, res) => {
+        const item = req.body;
+        const result = await reviewCollection.insertOne(item);
+        res.send(result);
+      });
+      
       const result = await productCollection.updateOne(filter, product, options);
       res.send(result)
   })
