@@ -4,7 +4,7 @@ const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -30,6 +30,7 @@ async function run() {
     const usersCollection = client.db("royelDB").collection('users');
     const productCollection = client.db("royelDB").collection('product');
     const reviewCollection = client.db("royelDB").collection('reviews');
+    const paymentCollection = client.db("royelDB").collection("payments");
 
 
     // JWT
@@ -220,6 +221,42 @@ async function run() {
       res.send(result);
     });
 
+    // payment
+
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+
+    app.get('/payments', async (req, res) =>{
+      const result = await paymentCollection.find().toArray();
+      res.send(result)
+    })
+
+    app.get('/payments/:email', verifyToken, async (req, res) => {
+      const query = { email: req.params.email }
+      if (req.params.email !== req.decoded.email) {
+        return res.status(403).send({ message: 'forbidden access' });
+      }
+      const result = await paymentCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+      res.send(paymentResult);
+    })
 
 
     // Send a ping to confirm a successful connection
