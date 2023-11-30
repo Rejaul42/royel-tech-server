@@ -169,26 +169,57 @@ async function run() {
               image: updatedProduct.image
           }
       }
-
-      // Review section
-
-      app.post('/reviews', verifyToken, async (req, res) => {
-        const item = req.body;
-        const result = await reviewCollection.insertOne(item);
-        res.send(result);
-      });
-      
       const result = await productCollection.updateOne(filter, product, options);
       res.send(result)
   })
-    
 
-    app.delete('/product/:id', verifyToken, async (req, res) => {
+  app.patch('/product/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) }
-      const result = await productCollection.deleteOne(query);
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: 'approved'
+        }
+      }
+      const result = await productCollection.updateOne(filter, updatedDoc);
       res.send(result);
     })
+
+  app.delete('/product/:id', verifyToken, async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) }
+    const result = await productCollection.deleteOne(query);
+    res.send(result);
+  })
+
+  // Update vote
+  app.patch('/updateVote/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $inc: { vote: 1 }
+      }
+      const result = await productCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    })
+    
+
+
+    // Review section
+
+    app.get('/reviews/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { productId: id }
+      const result = await reviewCollection.find(query).toArray();
+      res.send(result);
+    })
+
+    app.post('/reviews', verifyToken, async (req, res) => {
+      const item = req.body;
+      const result = await reviewCollection.insertOne(item);
+      res.send(result);
+    });
+
 
 
     // Send a ping to confirm a successful connection
